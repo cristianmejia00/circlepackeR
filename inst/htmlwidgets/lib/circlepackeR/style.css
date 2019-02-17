@@ -8,17 +8,16 @@
 }
 
 .circlepackeR .node--leaf {
-  fill: white;
+  fill: gray;
 }
 
 .circlepackeR .label {
-  font: 11px "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font: 11px "Trebuchet MS", Helvetica, Arial, sans-serif;
   text-anchor: middle;
   text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff, 0 -1px 0 #fff;
 }
 
 .circlepackeR .label,
-.circlepackeR .node--root,
-.circlepackeR .node--leaf {
+.circlepackeR .node--root{
   pointer-events: none;
 }
