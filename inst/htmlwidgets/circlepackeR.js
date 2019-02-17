@@ -28,7 +28,7 @@ HTMLWidgets.widget({
 
     var color = d3.scale.linear()
         .domain([-1, 5])
-        .range([x.options.color_min, x.options.color_max])
+        .range(["#FAFAFA", "#707070"])
         .interpolate(d3.interpolateHcl);
 
     var pack = d3.layout.pack()
@@ -42,17 +42,44 @@ HTMLWidgets.widget({
       .append("g")
         .attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")");
 
+    var tooltip = d3.select("body")
+        .append("div")
+        .style("position", "absolute")
+        .style("z-index", "10")
+        .style("visibility", "hidden")
+    var select = document.querySelector('#selectFileInputFile');
+
     function createViz(root) {
       var focus = root,
-          nodes = pack.nodes(root),
+          nodes = pack.nodes(root), //pack(root).descendants(), //
           view;
 
+      console.log("testing");
+      console.log(nodes);
+      console.log("end");
       var circle = svg.selectAll("circle")
-          .data(nodes)
-        .enter().append("circle")
-          .attr("class", function(d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
-          .style("fill", function(d) { return d.children ? color(d.depth) : null; })
-          .on("click", function(d) { if (focus !== d) zoom(d), d3.event.stopPropagation(); });
+      .data(nodes)
+      .enter().append("circle")
+        .attr("class", function(d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
+        //.attr("r", function(d) { return d.data.r; })
+        .style("fill", function(d) { return d.children ? color(d.depth) : d.fill; })
+        .on("click", function(d) { if (focus !== d) zoom(d), d3.event.stopPropagation(); })
+        .on("mouseover", function(d){return tooltip
+          .attr("dy", "0em")
+          .text(d.title)
+          .style("visibility", "visible")
+          .style("font-weight", "bold")
+          .append("div")
+          .attr("dy", "1em")
+          .style("font-style", "italic")
+          .style("font-size", "0.7em")
+          .style("padding-left", "15px")
+          .text(d.biblio)
+          .style("visibility", "visible");})
+        .on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})
+        .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
+
+
 
       var text = svg.selectAll("text")
           .data(nodes)
