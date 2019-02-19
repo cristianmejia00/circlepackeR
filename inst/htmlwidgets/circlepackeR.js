@@ -20,27 +20,34 @@ HTMLWidgets.widget({
     // much of this code is based on this example by Mike Bostock
     //   https://gist.github.com/mbostock/7607535
 
-    var margin = 20,
+    //var svg = d3.select(el).append("svg")
+    //    .attr("width", diameter)
+    //    .attr("height", diameter)
+    //  .append("g")
+    //    .attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")");
+
+    var svg = d3.select(el).append("svg"),
+        margin = 20,
+        //diameter = +svg.attr("width"),
+        diameter = Math.min(el.getBoundingClientRect().width,
+                            el.getBoundingClientRect().height);
+        g = svg.append("g").attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")");
+
+    //var margin = 20,
     // use getBoundingClientRect since width and height
     //  might not be in pixels
-    diameter = Math.min(el.getBoundingClientRect().width,
-                        el.getBoundingClientRect().height);
+    //diameter = Math.min(el.getBoundingClientRect().width,
+    //                    el.getBoundingClientRect().height);
 
-    var color = d3.scale.linear()
+    var color = d3.scaleLinear()
         .domain([-1, 5])
         .range(["#FAFAFA", "#707070"])
         .interpolate(d3.interpolateHcl);
 
-    var pack = d3.layout.pack()
+    var pack = d3.pack()
         .padding(2)
         .size([diameter - margin, diameter - margin])
-        .value(function(d) { return d[x.options.size]; })
-
-    var svg = d3.select(el).append("svg")
-        .attr("width", diameter)
-        .attr("height", diameter)
-      .append("g")
-        .attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")");
+        //.value(function(d) { return d[x.options.size]; })
 
     var tooltip = d3.select("body")
         .append("div")
@@ -50,48 +57,52 @@ HTMLWidgets.widget({
     var select = document.querySelector('#selectFileInputFile');
 
     function createViz(root) {
+      root = d3.hierarchy(root)
+          .sum(function(d) { return d.size; })
+          .sort(function(a, b) { return b.value - a.value; });
       var focus = root,
-          nodes = pack.nodes(root), //pack(root).descendants(), //
+          nodes = pack(root).descendants(), //pack.nodes(root), //
           view;
 
       console.log("testing");
       console.log(nodes);
       console.log("end");
-      var circle = svg.selectAll("circle")
-      .data(nodes)
-      .enter().append("circle")
-        .attr("class", function(d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
-        //.attr("r", function(d) { return d.data.r; })
-        .style("fill", function(d) { return d.children ? color(d.depth) : d.fill; })
-        .on("click", function(d) { if (focus !== d) zoom(d), d3.event.stopPropagation(); })
-        .on("mouseover", function(d){return tooltip
-          .attr("dy", "0em")
-          .text(d.title)
-          .style("visibility", "visible")
-          .style("font-weight", "bold")
-          .append("div")
-          .attr("dy", "1em")
-          .style("font-style", "italic")
-          .style("font-size", "0.7em")
-          .style("padding-left", "15px")
-          .text(d.biblio)
-          .style("visibility", "visible");})
-        .on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})
-        .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
+      var circle = g.selectAll("circle")
+        .data(nodes)
+        .enter().append("circle")
+          .attr("class", function(d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
+          //.attr("r", function(d) { return d.r; })
+          .style("fill", function(d) { return d.children ? color(d.depth) : d.data.fill; })
+          .on("click", function(d) { if (focus !== d) zoom(d), d3.event.stopPropagation(); })
+          .on("mouseover", function(d){return tooltip
+            .attr("dy", "0em")
+            .text(d.data.title)
+            .style("visibility", "visible")
+            .style("font-weight", "bold")
+            .append("div")
+            .attr("dy", "1em")
+            //.style("font-style", "italic")
+            .style("font-size", "0.9em")
+            .style("padding-left", "15px")
+            .text(d.data.biblio)
+            .style("visibility", "visible");})
+        	.on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})
+        	.on("mouseout", function(){return tooltip.style("visibility", "hidden");});
 
-
-
-      var text = svg.selectAll("text")
-          .data(nodes)
+      var text = g.selectAll("text")
+        .data(nodes)
         .enter().append("text")
           .attr("class", "label")
           .style("fill-opacity", function(d) { return d.parent === root ? 1 : 0; })
-          .style("display", function(d) { return d.parent === root ? null : "none"; })
-          .text(function(d) { return d.name; });
+          .style("display", function(d) { return d.parent === root ? "inline" : "none"; })
+          .text(function(d) { return d.data.name; });
 
-      var node = svg.selectAll("circle,text");
+      var node = g.selectAll("circle,text");
 
-      d3.select(el)
+      d3.select(el).selectAll('svg')
+          .attr("width", diameter)
+          .attr("height", diameter)
+          //.style("background", color(-1))
           .on("click", function() { zoom(root); });
 
       zoomTo([root.x, root.y, root.r * 2 + margin]);
@@ -109,8 +120,8 @@ HTMLWidgets.widget({
         transition.selectAll("text")
           .filter(function(d) { return d.parent === focus || this.style.display === "inline"; })
             .style("fill-opacity", function(d) { return d.parent === focus ? 1 : 0; })
-            .each("start", function(d) { if (d.parent === focus) this.style.display = "inline"; })
-            .each("end", function(d) { if (d.parent !== focus) this.style.display = "none"; });
+            .on("start", function(d) { if (d.parent === focus) this.style.display = "inline"; })
+            .on("end", function(d) { if (d.parent !== focus) this.style.display = "none"; });
       }
 
       function zoomTo(v) {
@@ -122,7 +133,7 @@ HTMLWidgets.widget({
 
     createViz(x.data)
 
-    d3.select(self.frameElement).style("height", diameter + "px");
+    //d3.select(self.frameElement).style("height", diameter + "px");
 
   },
 
